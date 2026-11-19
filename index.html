@@ -17,6 +17,7 @@
     padding: 44px 24px;
   }
   .app { display: flex; gap: 48px; align-items: flex-start; }
+  .phone-wrap { display: flex; justify-content: center; }
 
   /* ── 左侧表单 ── */
   .panel {
@@ -132,9 +133,10 @@
     html, body { background: #fff; padding: 0; display: block; }
     .app { display: block; }
     .panel { display: none; }
+    .phone-wrap { display: block !important; height: auto !important; overflow: visible !important; }
     .phone {
       width: 375px; height: 814px; margin: 0 auto;
-      box-shadow: none; border-radius: 0;
+      box-shadow: none; border-radius: 0; transform: none !important;
     }
     .card, .block-head .title, .apply-bar, .btn-ghost {
       -webkit-print-color-adjust: exact;
@@ -143,9 +145,10 @@
   }
 
   @media (max-width: 860px) {
-    body { display: block; padding: 20px; }
-    .app { flex-direction: column; align-items: center; gap: 28px; }
-    .panel { width: 100%; max-width: 420px; }
+    body { display: block; padding: 12px; }
+    .app { flex-direction: column; align-items: stretch; gap: 20px; }
+    .panel { width: 100%; max-width: 100%; }
+    .phone-wrap { overflow: hidden; }
   }
 </style>
 </head>
@@ -187,6 +190,7 @@
     <div class="tip">打印对话框里把「目标」选成「另存为 PDF」，再点保存。</div>
   </section>
 
+  <div class="phone-wrap">
   <section class="phone" id="sheet">
 
     <!-- 状态栏 -->
@@ -304,6 +308,7 @@
     <div class="safe-bottom"></div>
       <div class="apply-bar">申请</div>
   </section>
+  </div>
 
 </div>
 
@@ -381,9 +386,26 @@
     render();
   });
 
+  function fitPhone() {
+    var wrap = document.querySelector('.phone-wrap');
+    var phone = document.querySelector('.phone');
+    if (!wrap || !phone) return;
+    if (window.innerWidth > 860) {
+      phone.style.transform = ''; phone.style.transformOrigin = '';
+      wrap.style.height = ''; return;
+    }
+    var avail = document.documentElement.clientWidth - 24;
+    var s = Math.min(1, avail / 375);
+    phone.style.transformOrigin = 'top center';
+    phone.style.transform = 'scale(' + s + ')';
+    wrap.style.height = (814 * s) + 'px';
+  }
+  window.addEventListener('resize', fitPhone);
+
   init();
   randomStatus();
   render();
+  fitPhone();
 </script>
 </body>
 </html>
