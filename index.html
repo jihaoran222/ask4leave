@@ -150,9 +150,24 @@
     .panel { width: 100%; max-width: 100%; }
     .phone-wrap { overflow: hidden; }
   }
+
+  .noscript {
+    position: fixed; inset: 0; z-index: 99;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 24px; background: #eef1f8; color: #333;
+    font-size: 15px; line-height: 1.9; text-align: center;
+  }
+  .noscript p { margin: 0; max-width: 100%; word-break: break-all; }
+  .noscript b { font-weight: 600; }
 </style>
 </head>
 <body>
+<div id="boot" class="noscript">
+  <p>这一页的假条由脚本生成。</p>
+  <p>这段字一直不消失，说明当前没有运行脚本。</p>
+  <p>请改用浏览器打开，或访问</p>
+  <p><b>jihaoran222.github.io/ask4leave</b></p>
+</div>
 <div class="app">
 
   <section class="panel">
@@ -406,6 +421,7 @@
   randomStatus();
   render();
   fitPhone();
+  document.getElementById('boot').style.display = 'none';
 </script>
 </body>
 </html>
