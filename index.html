@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>请假条生成器</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #eef1f5;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 44px 24px;
+  }
+  .app { display: flex; gap: 48px; align-items: flex-start; }
+
+  /* ── 左侧表单 ── */
+  .panel {
+    width: 320px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(30, 50, 90, .08);
+  }
+  .panel h1 { font-size: 18px; font-weight: 600; color: #22303f; margin: 0 0 4px; }
+  .panel .hint { font-size: 12px; color: #9aa4b5; margin: 0 0 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: #7a8699; margin-bottom: 6px; }
+  .field input {
+    width: 100%; height: 38px; padding: 0 10px;
+    font-size: 14px; color: #22303f;
+    border: 1px solid #d9dfe9; border-radius: 8px;
+    outline: none; background: #fff; font-family: inherit;
+  }
+  .field input:focus { border-color: #4A7DFF; box-shadow: 0 0 0 3px rgba(74,125,255,.12); }
+  .print {
+    width: 100%; height: 42px; margin-top: 8px;
+    border: none; border-radius: 10px;
+    background: #4A7DFF; color: #fff;
+    font-size: 15px; letter-spacing: .5px;
+    cursor: pointer; font-family: inherit;
+  }
+  .print:hover { background: #3f6ff0; }
+  .reset {
+    width: 100%; height: 34px; margin-top: 6px;
+    border: none; background: none; color: #8a94a6;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .reset:hover { color: #5a6475; }
+  .tip {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px dashed #e3e8f0;
+    font-size: 11.5px; line-height: 1.7; color: #9aa4b5;
+  }
+
+  /* ── 右侧手机界面 ── */
+  .phone {
+    position: relative;
+    width: 375px; height: 814px;
+    background: #fff;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 14px 50px rgba(30, 50, 90, .16);
+    display: flex; flex-direction: column;
+    flex: none;
+  }
+
+  /* 状态栏 */
+  .statusbar {
+    height: 44px; flex: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 14px 0 14px;
+  }
+  .statusbar .time {
+    font-size: 15px; font-weight: 600; letter-spacing: .2px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .statusbar .icons { display: flex; align-items: center; gap: 5px; }
+
+  /* 导航栏 */
+  .navbar {
+    height: 44px; flex: none; position: relative;
+    display: flex; align-items: center; gap: 33px; padding: 0 12px;
+  }
+  .nav-title {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-size: 17px; font-weight: 600; color: #111;
+    pointer-events: none;
+  }
+  .navbar .icon-btn { display: flex; align-items: center; cursor: default; }
+  .navbar .more { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); }
+
+  /* 列表 */
+  .content { flex: 1; overflow-y: auto; padding: 0 12px 90px; scrollbar-width: none; }
+  .content::-webkit-scrollbar { display: none; }
+  .block-head {
+    padding: 15px 4px 3px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .block-head .title { font-size: 16px; font-weight: 600; color: #74D13C; }
+  .block-head .arrow { color: #c8cdd6; font-size: 18px; line-height: 1; }
+
+  .card { background: #F6F8FF; border-radius: 10px; padding: 12px 14px 14px; }
+  .row { display: flex; font-size: 12.3px; line-height: 22px; letter-spacing: -.55px; }
+  .row .k { flex: none; color: #888; }
+  .row .v { flex: 1; color: #222; overflow-wrap: break-word; }
+  .row .v.warn { color: #FF3B30; font-size: 12px; }
+  .card-foot { text-align: right; padding: 5px 0 4px; }
+  .btn-ghost {
+    display: inline-block; padding: 1px 11px;
+    border: 1px solid #FF3B30; border-radius: 12px;
+    color: #FF3B30; font-size: 12px; line-height: 20px;
+    background: #fff;
+  }
+
+  .safe-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: 28px; background: #fff; }
+
+  /* 底部申请条 */
+  .apply-bar {
+    position: absolute; left: 0; right: 0; bottom: 28px; height: 36px;
+    background: #517BF4; color: #fff; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── 打印 ── */
+  @media print {
+    @page { margin: 18mm auto; }
+    html, body { background: #fff; padding: 0; display: block; }
+    .app { display: block; }
+    .panel { display: none; }
+    .phone {
+      width: 375px; height: 814px; margin: 0 auto;
+      box-shadow: none; border-radius: 0;
+    }
+    .card, .block-head .title, .apply-bar, .btn-ghost {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  @media (max-width: 860px) {
+    body { display: block; padding: 20px; }
+    .app { flex-direction: column; align-items: center; gap: 28px; }
+    .panel { width: 100%; max-width: 420px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section class="panel">
+    <h1>请假条生成器</h1>
+    <p class="hint">填表，右边即时出条；打印时选「另存为 PDF」。</p>
+
+    <div class="field">
+      <label for="f-name">姓名</label>
+      <input id="f-name" type="text" placeholder="请输入姓名" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="f-id">学号</label>
+      <input id="f-id" type="text" placeholder="请输入学号" autocomplete="off" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label for="f-start">开始时间</label>
+      <input id="f-start" type="datetime-local" step="3600">
+    </div>
+    <div class="field">
+      <label for="f-end">结束时间</label>
+      <input id="f-end" type="datetime-local" step="3600">
+    </div>
+    <div class="field">
+      <label for="f-reason">请假原因</label>
+      <input id="f-reason" type="text" placeholder="病假 / 事假 / 公假" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="f-place">外出地点（可不填）</label>
+      <input id="f-place" type="text" placeholder="如：青岛市市南区" autocomplete="off">
+    </div>
+
+    <button class="print" id="btn-print">打印 / 存为 PDF</button>
+    <button class="reset" id="btn-reset">清空重填</button>
+
+    <div class="tip">打印对话框里把「目标」选成「另存为 PDF」，再点保存。</div>
+  </section>
+
+  <section class="phone" id="sheet">
+
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <span class="time"><span id="st-time">12:08</span>
+        <svg width="9" height="11" viewBox="0 0 10 12" fill="#000" stroke="none">
+          <path d="M1.2 10.8V1.2l7.6 4.8-7.6 4.8z"/>
+        </svg>
+      </span>
+      <span class="icons">
+        <svg width="17" height="11" viewBox="0 0 17 11">
+          <rect x="0" y="7.3" width="3" height="3.7" rx="1" fill="#000"/>
+          <rect x="4.7" y="5" width="3" height="6" rx="1" fill="#000"/>
+          <rect x="9.4" y="2.6" width="3" height="8.4" rx="1" fill="#000"/>
+          <rect x="14" y="0" width="3" height="11" rx="1" fill="#000"/>
+        </svg>
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="#000" stroke-width="1.4" stroke-linecap="round">
+          <path d="M1 3.7a9.6 9.6 0 0 1 13 0"/>
+          <path d="M3.7 6.3a5.7 5.7 0 0 1 7.6 0"/>
+          <path d="M6.2 8.8a2.2 2.2 0 0 1 2.6 0"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12">
+          <rect x="0.6" y="0.6" width="21" height="10.8" rx="3" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="1.2"/>
+          <rect id="st-bar" x="2.2" y="2.2" width="17.8" height="7.6" rx="1.6" fill="#000"/>
+          <path d="M23.2 4.1v3.8a2 2 0 0 0 0-3.8z" fill="#000" fill-opacity=".4"/>
+          <text id="st-batt" x="11" y="8.7" font-size="6.8" text-anchor="middle" fill="#fff" font-family="Helvetica, Arial, sans-serif">68</text>
+        </svg>
+      </span>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="navbar">
+      <span class="icon-btn">
+        <svg width="11" height="19" viewBox="0 0 11 19" fill="none" stroke="#222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.2 1.8 1.8 9.5l7.4 7.7"/>
+        </svg>
+      </span>
+      <span class="icon-btn">
+        <svg width="15" height="15" viewBox="0 0 15 15" stroke="#222" stroke-width="1.7" stroke-linecap="round">
+          <path d="M2.4 2.4l10.2 10.2M12.6 2.4 2.4 12.6"/>
+        </svg>
+      </span>
+      <span class="nav-title">日常请假</span>
+      <span class="more">
+        <svg width="21" height="5" viewBox="0 0 21 5">
+          <circle cx="2.5" cy="2.5" r="2" fill="#222"/>
+          <circle cx="10.5" cy="2.5" r="2" fill="#222"/>
+          <circle cx="18.5" cy="2.5" r="2" fill="#222"/>
+        </svg>
+      </span>
+    </div>
+
+    <!-- 列表 -->
+    <div class="content">
+
+      <div class="block">
+        <div class="block-head">
+          <span class="title">休假中</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="card">
+          <div class="row"><span class="k">姓名：</span><span class="v" id="v-name"></span></div>
+          <div class="row"><span class="k">学号：</span><span class="v" id="v-id"></span></div>
+          <div class="row"><span class="k">请假时间：</span><span class="v" id="v-time"></span></div>
+          <div class="row"><span class="k">请假原因：</span><span class="v" id="v-reason"></span></div>
+          <div class="row"><span class="k">外出地点：</span><span class="v" id="v-place"></span></div>
+          <div class="card-foot"><span class="btn-ghost">销假申请</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="title">已销假</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="card">
+          <div class="row"><span class="k">姓名：</span><span class="v h-name"></span></div>
+          <div class="row"><span class="k">学号：</span><span class="v h-id"></span></div>
+          <div class="row"><span class="k">请假时间：</span><span class="v">2026/06/17 07:00至2026/06/18 20:00共计1天13小时</span></div>
+          <div class="row"><span class="k">请假原因：</span><span class="v">病假</span></div>
+          <div class="row"><span class="k">外出地点：</span><span class="v"></span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="title">已销假</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="card">
+          <div class="row"><span class="k">姓名：</span><span class="v h-name"></span></div>
+          <div class="row"><span class="k">学号：</span><span class="v h-id"></span></div>
+          <div class="row"><span class="k">请假时间：</span><span class="v">2026/01/08 21:00至2026/01/09 21:00共计1天0小时</span></div>
+          <div class="row"><span class="k">请假原因：</span><span class="v">病假</span></div>
+          <div class="row"><span class="k">外出地点：</span><span class="v"></span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="title">已销假</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="card">
+          <div class="row"><span class="k">姓名：</span><span class="v h-name"></span></div>
+          <div class="row"><span class="k">学号：</span><span class="v h-id"></span></div>
+          <div class="row"><span class="k">请假时间：</span><span class="v">2025/11/03 08:00至2025/11/03 18:00共计0天10小时</span></div>
+          <div class="row"><span class="k">请假原因：</span><span class="v">病假</span></div>
+          <div class="row"><span class="k">外出地点：</span><span class="v"></span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="safe-bottom"></div>
+      <div class="apply-bar">申请</div>
+  </section>
+
+</div>
+
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  var p2 = function (n) { return String(n).padStart(2, '0'); };
+
+  function fmt(d) {
+    return d.getFullYear() + '/' + p2(d.getMonth() + 1) + '/' + p2(d.getDate())
+         + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+
+  function render() {
+    var name = $('f-name').value.trim();
+    var sid = $('f-id').value.trim();
+
+    $('v-name').textContent = name;
+    $('v-id').textContent = sid;
+    $('v-reason').textContent = $('f-reason').value.trim();
+    $('v-place').textContent = $('f-place').value.trim();
+
+    document.querySelectorAll('.h-name').forEach(function (el) { el.textContent = name; });
+    document.querySelectorAll('.h-id').forEach(function (el) { el.textContent = sid; });
+
+    var s = $('f-start').value;
+    var e = $('f-end').value;
+    var tv = $('v-time');
+    tv.classList.remove('warn');
+
+    if (!s || !e) { tv.textContent = ''; return; }
+    var a = new Date(s);
+    var b = new Date(e);
+    if (isNaN(a) || isNaN(b)) { tv.textContent = ''; return; }
+    if (b <= a) {
+      tv.textContent = '结束时间需晚于开始时间';
+      tv.classList.add('warn');
+      return;
+    }
+    var h = Math.floor((b - a) / 3600000);
+    tv.textContent = fmt(a) + '至' + fmt(b) + '共计' + Math.floor(h / 24) + '天' + (h % 24) + '小时';
+  }
+
+  function randomStatus() {
+    var h = Math.floor(Math.random() * 24);
+    var m = Math.floor(Math.random() * 60);
+    var pct = 65 + Math.floor(Math.random() * 36);
+    var w = 17.8 * pct / 100;
+    $('st-time').textContent = h + ':' + p2(m);
+    $('st-batt').textContent = pct;
+    $('st-batt').setAttribute('x', (2.2 + w / 2).toFixed(1));
+    $('st-bar').setAttribute('width', w.toFixed(1));
+  }
+
+  function init() {
+    var now = new Date();
+    var d = now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
+    $('f-start').value = d + 'T08:00';
+    $('f-end').value = d + 'T18:00';
+    $('f-reason').value = '病假';
+  }
+
+  ['f-name', 'f-id', 'f-start', 'f-end', 'f-reason', 'f-place'].forEach(function (id) {
+    $(id).addEventListener('input', render);
+    $(id).addEventListener('change', render);
+  });
+
+  $('btn-print').addEventListener('click', function () { window.print(); });
+
+  $('btn-reset').addEventListener('click', function () {
+    $('f-name').value = '';
+    $('f-id').value = '';
+    $('f-reason').value = '';
+    $('f-place').value = '';
+    init();
+    render();
+  });
+
+  init();
+  randomStatus();
+  render();
+</script>
+</body>
+</html>
